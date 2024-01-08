@@ -11,11 +11,11 @@
 
 namespace dg::uniform_radix_sort::constants{
 
-    static constexpr size_t ALPHABET_BIT_SIZE   = CHAR_BIT;
-    static constexpr size_t RADIX_SIZE          = size_t{1} << ALPHABET_BIT_SIZE;
-    static constexpr size_t DECAY_RATE          = ALPHABET_BIT_SIZE - 1;
-    static constexpr size_t PADDING             = 4u; //to-be-adjusted 
-    static constexpr size_t BLOCK_QS_THRESHOLD  = 0b1111;
+    static inline constexpr size_t ALPHABET_BIT_SIZE   = CHAR_BIT;
+    static inline constexpr size_t RADIX_SIZE          = size_t{1} << ALPHABET_BIT_SIZE;
+    static inline constexpr size_t DECAY_RATE          = ALPHABET_BIT_SIZE - 1;
+    static inline constexpr size_t PADDING             = 4u; //to-be-adjusted 
+    static inline constexpr size_t BLOCK_QS_THRESHOLD  = 0b1111;
 }
 
 namespace dg::uniform_radix_sort::types{
@@ -25,7 +25,7 @@ namespace dg::uniform_radix_sort::types{
 
 namespace dg::uniform_radix_sort::utility{
 
-    constexpr auto temp_buffer_size(size_t n, size_t decay_rate, size_t padding) -> size_t{
+    static constexpr auto temp_buffer_size(size_t n, size_t decay_rate, size_t padding) -> size_t{
 
         if (n == 0){
             return 0;
@@ -35,7 +35,7 @@ namespace dg::uniform_radix_sort::utility{
     }
 
     template <class T>
-    auto fill_padding(T * val, size_t n, size_t decay_rate, size_t padding){
+    static constexpr void fill_padding(T * val, size_t n, size_t decay_rate, size_t padding){
 
         if (n == 0){
             return;
@@ -49,13 +49,12 @@ namespace dg::uniform_radix_sort::utility{
     } 
 
     template <class T, size_t IDX, std::enable_if_t<std::is_unsigned_v<T>, bool> = true>
-    constexpr auto extract_radix(T val, const std::integral_constant<size_t, IDX>){
+    static constexpr auto extract_radix(T val, const std::integral_constant<size_t, IDX>) -> T{
     
-        using namespace uniform_radix_sort::constants;
-        static_assert(RADIX_SIZE - 1 <= std::numeric_limits<T>::max());
+        static_assert(constants::RADIX_SIZE - 1 <= std::numeric_limits<T>::max());
 
-        constexpr size_t OFFS   = (sizeof(T) - IDX - 1) * ALPHABET_BIT_SIZE;
-        constexpr T BITMASK     = RADIX_SIZE - 1;
+        constexpr size_t OFFS   = (sizeof(T) - IDX - 1) * constants::ALPHABET_BIT_SIZE;
+        constexpr T BITMASK     = constants::RADIX_SIZE - 1;
 
         return (val >> OFFS) & BITMASK;
     }
@@ -116,7 +115,9 @@ namespace dg::uniform_radix_sort::template_sort{
 namespace dg::uniform_radix_sort::block_quicksort{
 
     template <class T, size_t MAX_SZ, size_t PADDING>
-    void block_quicksort(T * first, T * last, const std::integral_constant<size_t, MAX_SZ>, const std::integral_constant<size_t, PADDING>){
+    static void block_quicksort(T * first, T * last, 
+                                const std::integral_constant<size_t, MAX_SZ>, 
+                                const std::integral_constant<size_t, PADDING>){
 
         static_assert(PADDING >= 1);
         
@@ -149,33 +150,33 @@ namespace dg::uniform_radix_sort{
     using namespace uniform_radix_sort::types;
 
     template <class T, size_t FIRST, size_t LAST>
-    void radix_sort(T * first, T * last, 
-                    count_type * counter,
-                    T * tmp, size_t tmp_sz, size_t decay_rate,
-                    const std::integral_constant<size_t, FIRST> f_idx,
-                    const std::integral_constant<size_t, LAST> l_idx){
+    static void radix_sort(T * first, T * last, 
+                           count_type * counter,
+                           T * tmp, size_t tmp_sz, size_t decay_rate,
+                           const std::integral_constant<size_t, FIRST> f_idx,
+                           const std::integral_constant<size_t, LAST> l_idx){
 
         if constexpr(FIRST != LAST){
 
             size_t sz   = std::distance(first, last);
-
-            if (std::distance(first, last) <= constants::BLOCK_QS_THRESHOLD){
+            
+            if (sz <= constants::BLOCK_QS_THRESHOLD){
                 block_quicksort::block_quicksort(first, last, std::integral_constant<size_t, constants::BLOCK_QS_THRESHOLD>{}, std::integral_constant<size_t, constants::PADDING>{});
                 return;
-            } else if (sz < constants::RADIX_SIZE || sz > tmp_sz){
+            } 
+            
+            if (sz < constants::RADIX_SIZE || sz > tmp_sz){
                 std::sort(first, last);
                 return;
             }
 
-            auto nxt_tmp        = tmp;  
-            auto last_tmp       = tmp; 
             auto nxt_counter    = counter + constants::RADIX_SIZE;
-            size_t nxt_tmp_sz   = tmp_sz >> decay_rate;
+            auto nxt_tmp        = tmp + (tmp_sz + constants::PADDING);  
+            auto last_tmp       = tmp + sz; 
+            auto nxt_tmp_sz     = tmp_sz >> decay_rate;
 
-            std::advance(last_tmp, sz);
-            std::advance(nxt_tmp, tmp_sz + constants::PADDING);
-            std::memset(counter, int{}, sizeof(count_type) * constants::RADIX_SIZE);
-
+            std::memset(counter, 0, constants::RADIX_SIZE * sizeof(count_type));
+            
             for (auto i = first; i != last; ++i){
                 auto radix = utility::extract_radix(*i, f_idx);
                 counter[radix] += 1;
