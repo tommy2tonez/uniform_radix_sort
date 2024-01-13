@@ -34,20 +34,6 @@ namespace dg::uniform_radix_sort::utility{
         return n + padding + temp_buffer_size(n >> decay_rate, decay_rate, padding);
     }
 
-    template <class T>
-    static constexpr void fill_padding(T * val, size_t n, size_t decay_rate, size_t padding){
-
-        if (n == 0){
-            return;
-        }
-        
-        auto first  = val + n;
-        auto last   = first + padding; 
-
-        std::fill(first, last, std::numeric_limits<T>::max());
-        fill_padding(last, n >> decay_rate, decay_rate, padding);
-    } 
-
     template <class T, size_t IDX, std::enable_if_t<std::is_unsigned_v<T>, bool> = true>
     static constexpr auto extract_radix(T val, const std::integral_constant<size_t, IDX>) -> T{
     
@@ -175,7 +161,8 @@ namespace dg::uniform_radix_sort{
             auto last_tmp       = tmp + sz; 
             auto nxt_tmp_sz     = tmp_sz >> decay_rate;
 
-            std::memset(counter, 0, constants::RADIX_SIZE * sizeof(count_type));
+            std::memset(counter, 0u, constants::RADIX_SIZE * sizeof(count_type));
+            std::fill(last_tmp, nxt_tmp, std::numeric_limits<T>::max());
             
             for (auto i = first; i != last; ++i){
                 auto radix = utility::extract_radix(*i, f_idx);
@@ -213,7 +200,7 @@ namespace dg::uniform_radix_sort{
         auto tmp_sz     = utility::temp_buffer_size(static_cast<size_t>(sz), constants::DECAY_RATE, constants::PADDING);
         auto tmp_buf    = std::make_unique<T[]>(tmp_sz); 
         auto count_buf  = std::make_unique<count_type[]>(constants::RADIX_SIZE * LAST);
-        utility::fill_padding(tmp_buf.get(), sz, constants::DECAY_RATE, constants::PADDING);
+
         radix_sort(first, last, count_buf.get(), tmp_buf.get(), sz, constants::DECAY_RATE, std::integral_constant<size_t, 0u>{}, std::integral_constant<size_t, LAST>{});
     }   
 }
