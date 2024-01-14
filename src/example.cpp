@@ -16,9 +16,9 @@ auto timeit(Executable exe) -> size_t{
 
 int main(){
 
-    constexpr auto SZ   = size_t{1} << 15;
+    constexpr auto SZ   = size_t{1} << 25;
     auto sz_rand_dev    = std::bind(std::uniform_int_distribution<size_t>(0u, SZ), std::mt19937{});
-
+    
     while (true){
         auto data_rand_dev  = std::bind(std::uniform_int_distribution<size_t>{}, std::mt19937{std::chrono::high_resolution_clock::now().time_since_epoch().count()});
         auto sz     = sz_rand_dev();        
@@ -33,6 +33,4 @@ int main(){
             std::cout << "mayday" << std::endl;
         }
     }
-    
-
 }

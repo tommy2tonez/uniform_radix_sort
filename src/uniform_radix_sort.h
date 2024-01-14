@@ -162,7 +162,7 @@ namespace dg::uniform_radix_sort{
             auto nxt_tmp_sz     = tmp_sz >> decay_rate;
 
             std::memset(counter, 0u, constants::RADIX_SIZE * sizeof(count_type));
-            std::fill(last_tmp, nxt_tmp, std::numeric_limits<T>::max());
+            std::fill(last_tmp, last_tmp + constants::PADDING, std::numeric_limits<T>::max());
             
             for (auto i = first; i != last; ++i){
                 auto radix = utility::extract_radix(*i, f_idx);
@@ -178,11 +178,12 @@ namespace dg::uniform_radix_sort{
                 tmp[--counter[radix]] = *i;
             }
 
-            for (size_t i = 0; i < constants::RADIX_SIZE - 1; ++i){
-                radix_sort(tmp + counter[i], tmp + counter[i + 1], nxt_counter, nxt_tmp, nxt_tmp_sz, decay_rate, std::integral_constant<size_t, FIRST + 1>{}, l_idx);
+            for (size_t i = constants::RADIX_SIZE; i > 0; --i){                
+                auto ffirst  = tmp + counter[i - 1];
+                auto llast   = (i == constants::RADIX_SIZE) ? last_tmp: tmp + counter[i]; 
+                radix_sort(ffirst, llast, nxt_counter, nxt_tmp, nxt_tmp_sz, decay_rate, std::integral_constant<size_t, FIRST + 1>{}, l_idx);
             }
 
-            radix_sort(tmp + counter[constants::RADIX_SIZE - 1], last_tmp, nxt_counter, nxt_tmp, nxt_tmp_sz, decay_rate, std::integral_constant<size_t, FIRST + 1>{}, l_idx);
             std::copy(tmp, last_tmp, first);
         }
     } 
